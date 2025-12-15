@@ -61,6 +61,6 @@ class RoboticsToolBox:
 
         if sol.success:
             q_deg = np.rad2deg(sol.q)
-            return True, q_deg
+            return q_deg
         else:
-            return False, None
+            return None
