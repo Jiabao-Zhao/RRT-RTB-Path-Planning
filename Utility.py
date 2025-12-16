@@ -43,7 +43,7 @@ def check_state_validity(robot, q_rad, world):
         for point in points:
             dist = obs.distance_to_point(point)
             if dist < 30:
-                return False, f"Collision with {obs.name}: clearance={dist:.1f}mm"
+                return False, f"Collision with obstacle: clearance={dist:.1f}mm"
 
     return True, None
 

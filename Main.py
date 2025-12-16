@@ -30,11 +30,11 @@ def main():
     x_goal = 614.1; y_goal = -114.6; z_goal = 184.6; roll_goal = 180; pitch_goal = 0; yaw_goal = 0      # goal coordinate in 3D (predefined)
 
     # load physical xArm
-    arm = XArmAPI("192.168.1.240")
-    arm.motion_enable(True)
-    arm.set_mode(0)
-    arm.set_state(0)
-    arm.set_position(x_start, y_start, z_start, roll_start, pitch_start, yaw_start) # home position (predefined)
+    # arm = XArmAPI("192.168.1.240")
+    # arm.motion_enable(True)
+    # arm.set_mode(0)
+    # arm.set_state(0)
+    # arm.set_position(x_start, y_start, z_start, roll_start, pitch_start, yaw_start) # home position (predefined)
 
     # initial world-class with ground plane and obstacle
     world = WorldModel(ground_z = 0.0)
@@ -60,7 +60,7 @@ def main():
     print(path_deg)
 
     # move arm
-    #move_arm(arm, path_deg)
+    # move_arm(arm, path_deg)
 
 if __name__ == "__main__":
     main()

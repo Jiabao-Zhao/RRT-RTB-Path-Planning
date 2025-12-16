@@ -130,17 +130,19 @@ class RRT:
 class Tree:
     """Rapidly-exploring Random Tree"""
     def __init__(self, root):
-        self.nodes = root
+        root = np.asarray(root, dtype=float).reshape(-1)
+        self.nodes = [root]
         self.parents = [-1]
 
     def add_node(self, q, parent_idx):
-        self.nodes.append(np.asarray(q, dtype=float))
-        self.parents.append(parent_idx)
+        q = np.asarray(q, dtype=float).reshape(-1)
+        self.nodes.append(q)
+        self.parents.append(int(parent_idx))
         return len(self.nodes) - 1
 
     def nearest(self, q):
         """Find the nearest node with angle wrapping"""
-        q = np.asarray(q, dtype=float)
+        q = np.asarray(q, dtype=float).reshape(-1)
         dists = []
         for node in self.nodes:
             diff = q - node
