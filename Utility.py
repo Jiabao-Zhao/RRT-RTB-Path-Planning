@@ -68,3 +68,22 @@ def segment_collision_free(robot, q_from, q_to, world):
             return False
 
     return True
+
+def smooth_path_shortcut(robot, world, rrt_path_rad):
+    """Smooth path using shortcut method (works in RADIANS)"""
+    if len(rrt_path_rad) <= 2:
+        return rrt_path_rad
+
+    smoothed = [np.array(q) for q in rrt_path_rad]
+
+    for _ in range(100):
+        if len(smoothed) <= 2:
+            break
+
+        i = np.random.randint(0, len(smoothed) - 2)
+        j = np.random.randint(i + 2, len(smoothed))
+
+        if segment_collision_free(robot, smoothed[i], smoothed[j], world):
+            smoothed = smoothed[:i + 1] + smoothed[j:]
+
+    return smoothed
