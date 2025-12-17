@@ -61,3 +61,20 @@ Example install (adjust as needed for your environment):
 pip install numpy matplotlib roboticstoolbox-python spatialmath-python
 # Optional for real robot:
 pip install xarmlib or deploy the xarmlib locally
+
+## How to run
+### 1) Put all files in one folder
+Make sure these 5 files are in the same directory:
+
+- `Main.py`
+- `RRT.py`
+- `Utility.py`
+- `RoboticsToolbox.py`
+- `Obstacles_Creator.py`
+
+### 2)
+Run a example using Main.py
+One can customize their own starting pose, ending pose, and obstacles in the environment.
+
+### 3)
+Now - go have fun ---- Jiabao Zhao 
