@@ -61,8 +61,11 @@ Example install (adjust as needed for your environment):
 pip install numpy matplotlib roboticstoolbox-python spatialmath-python
 # Optional for real robot:
 pip install xarmlib or deploy the xarmlib locally
+```
+---
 
 ## How to run
+
 ### 1) Put all files in one folder
 Make sure these 5 files are in the same directory:
 
