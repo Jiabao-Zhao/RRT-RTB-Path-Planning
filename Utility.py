@@ -87,3 +87,72 @@ def smooth_path_shortcut(robot, world, rrt_path_rad):
             smoothed = smoothed[:i + 1] + smoothed[j:]
 
     return smoothed
+
+
+
+def set_axes_equal(ax):
+    """Make 3D axes have equal scale so the path isn't visually distorted."""
+    x_limits = ax.get_xlim3d()
+    y_limits = ax.get_ylim3d()
+    z_limits = ax.get_zlim3d()
+
+    x_range = abs(x_limits[1] - x_limits[0])
+    y_range = abs(y_limits[1] - y_limits[0])
+    z_range = abs(z_limits[1] - z_limits[0])
+
+    x_middle = np.mean(x_limits)
+    y_middle = np.mean(y_limits)
+    z_middle = np.mean(z_limits)
+
+    plot_radius = 0.5 * max([x_range, y_range, z_range])
+    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+
+# ---- After you compute smoothed_path ----
+# smoothed_path = smooth_path_shortcut(toolbox.robot, world, path_planning)
+
+robot = toolbox.robot
+
+# FK for each configuration -> end-effector positions
+ee_xyz = []
+for q in smoothed_path:  # q in radians
+    T = robot.fkine(q)   # SE3
+    ee_xyz.append(np.array(T.t).reshape(3))
+ee_xyz = np.vstack(ee_xyz)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection="3d")
+
+# Plot path + start/goal
+ax.plot(ee_xyz[:, 0], ee_xyz[:, 1], ee_xyz[:, 2], linewidth=2)
+ax.scatter(ee_xyz[0, 0], ee_xyz[0, 1], ee_xyz[0, 2], s=60)
+ax.scatter(ee_xyz[-1, 0], ee_xyz[-1, 1], ee_xyz[-1, 2], s=60)
+
+# Plot obstacle spheres
+for obs in world.obstacles:
+    c = np.asarray(obs.center, dtype=float)
+    r = float(obs.radius)
+    u = np.linspace(0, 2*np.pi, 30)
+    v = np.linspace(0, np.pi, 15)
+    xs = c[0] + r * np.outer(np.cos(u), np.sin(v))
+    ys = c[1] + r * np.outer(np.sin(u), np.sin(v))
+    zs = c[2] + r * np.outer(np.ones_like(u), np.cos(v))
+    ax.plot_wireframe(xs, ys, zs, linewidth=0.5)
+
+# Plot ground plane (z = ground_z)
+gz = float(world.ground_z)
+pad = 100.0
+xmin, xmax = ee_xyz[:, 0].min() - pad, ee_xyz[:, 0].max() + pad
+ymin, ymax = ee_xyz[:, 1].min() - pad, ee_xyz[:, 1].max() + pad
+X, Y = np.meshgrid(np.linspace(xmin, xmax, 2), np.linspace(ymin, ymax, 2))
+Z = np.full_like(X, gz)
+ax.plot_surface(X, Y, Z, alpha=0.2)
+
+ax.set_xlabel("x (mm)")
+ax.set_ylabel("y (mm)")
+ax.set_zlabel("z (mm)")
+ax.set_title("RRT Path (End-Effector)")
+set_axes_equal(ax)
+
+plt.show()
