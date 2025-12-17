@@ -2,7 +2,7 @@ from RoboticsToolbox import RoboticsToolBox
 from xarmlib.wrapper import XArmAPI
 from Obstacles_Creator import WorldModel
 from RRT import RRT, Tree
-from Utility import smooth_path_shortcut
+from Utility import smooth_path_shortcut, plot_rrt_results
 import numpy as np
 
 def move_arm(arm, path_deg):
@@ -58,6 +58,8 @@ def main():
     print(f"Distance to goal: {distance_error:.2f}mm")
 
     print(path_deg)
+
+    plot_rrt_results(toolbox.robot, smoothed_path, world=world, x_goal=x_goal, y_goal=y_goal, z_goal=z_goal)
 
     # move arm
     # move_arm(arm, path_deg)

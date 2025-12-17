@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def sample_link_points(robot, q_rad):
     """
@@ -88,71 +89,97 @@ def smooth_path_shortcut(robot, world, rrt_path_rad):
 
     return smoothed
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_rrt_results(robot, smoothed_path, world=None, x_goal=None, y_goal=None, z_goal=None):
+    """
+    1) Joint angles vs step index
+    2) End-effector x-y-z trajectory in 3D (+ spheres + ground plane)
+    """
+
+    q = np.asarray(smoothed_path, dtype=float)
+    q_step, n = q.shape
+    steps = np.arange(q_step)
+
+    # ---- end-effector positions (N x 3) ----
+    ee_xyz = np.zeros((q_step, 3), dtype=float)
+    for i, k in enumerate(q):
+        t = robot.fkine(k)
+        ee_xyz[i, :] = np.asarray(t.t).reshape(3)
+
+    plt.figure()
+    for j in range(n):
+        plt.plot(steps, q[:, j], label=f"Joint {j+1}")
+    plt.xlabel("Step index")
+    plt.ylabel("Joint angle (rad)")
+    plt.title("Joint Angles Along Planned Path")
+    plt.grid(True, alpha=0.3)
+    plt.legend(ncol=2, fontsize=9)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+    ax.plot(ee_xyz[:, 0], ee_xyz[:, 1], ee_xyz[:, 2], linewidth=2)
+
+    # start/end markers
+    ax.scatter(ee_xyz[0, 0], ee_xyz[0, 1], ee_xyz[0, 2], s=60)
+    ax.scatter(ee_xyz[-1, 0], ee_xyz[-1, 1], ee_xyz[-1, 2], s=60)
+
+    # optional goal marker
+    if x_goal is not None and y_goal is not None and z_goal is not None:
+        ax.scatter(float(x_goal), float(y_goal), float(z_goal), s=80, marker="x")
+
+    xmin, xmax = np.min(ee_xyz[:, 0]), np.max(ee_xyz[:, 0])
+    ymin, ymax = np.min(ee_xyz[:, 1]), np.max(ee_xyz[:, 1])
+    zmin, zmax = np.min(ee_xyz[:, 2]), np.max(ee_xyz[:, 2])
+
+    if world is not None:
+        # include ground in z-limits
+        zmin = min(zmin, float(world.ground_z))
+
+        # include spheres in x/y/z limits
+        for obs in world.obstacles:
+            c = obs.center.astype(float)
+            r = float(obs.radius)
+            xmin = min(xmin, c[0] - r); xmax = max(xmax, c[0] + r)
+            ymin = min(ymin, c[1] - r); ymax = max(ymax, c[1] + r)
+            zmin = min(zmin, c[2] - r); zmax = max(zmax, c[2] + r)
+
+    pad = 0.05 * max(xmax - xmin, ymax - ymin, zmax - zmin, 1.0)
+    xmin -= pad; xmax += pad
+    ymin -= pad; ymax += pad
+    zmin -= pad; zmax += pad
+
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+    ax.set_zlim(zmin, zmax)
+
+    if world is not None:
+        # Ground plane z = ground_z over the current x/y bounds
+        gx = np.linspace(xmin, xmax, 2)
+        gy = np.linspace(ymin, ymax, 2)
+        GX, GY = np.meshgrid(gx, gy)
+        GZ = np.full_like(GX, float(world.ground_z))
+        ax.plot_surface(GX, GY, GZ, alpha=0.15, linewidth=0)
+
+        # Spheres
+        u = np.linspace(0, 2*np.pi, 32)
+        v = np.linspace(0, np.pi, 32)
+        for obs in world.obstacles:
+            cx, cy, cz = obs.center.astype(float)
+            r = float(obs.radius)
+            x = cx + r * np.outer(np.cos(u), np.sin(v))
+            y = cy + r * np.outer(np.sin(u), np.sin(v))
+            z = cz + r * np.outer(np.ones_like(u), np.cos(v))
+            ax.plot_surface(x, y, z, alpha=0.25, linewidth=0)
+
+    ax.set_xlabel("x (mm)")
+    ax.set_ylabel("y (mm)")
+    ax.set_zlabel("z (mm)")
+    ax.set_title("End-Effector 3D Trajectory")
+
+    ax.set_box_aspect((xmax - xmin, ymax - ymin, zmax - zmin))
+
+    plt.show()
 
 
-def set_axes_equal(ax):
-    """Make 3D axes have equal scale so the path isn't visually distorted."""
-    x_limits = ax.get_xlim3d()
-    y_limits = ax.get_ylim3d()
-    z_limits = ax.get_zlim3d()
-
-    x_range = abs(x_limits[1] - x_limits[0])
-    y_range = abs(y_limits[1] - y_limits[0])
-    z_range = abs(z_limits[1] - z_limits[0])
-
-    x_middle = np.mean(x_limits)
-    y_middle = np.mean(y_limits)
-    z_middle = np.mean(z_limits)
-
-    plot_radius = 0.5 * max([x_range, y_range, z_range])
-    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
-    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
-    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
-
-# ---- After you compute smoothed_path ----
-# smoothed_path = smooth_path_shortcut(toolbox.robot, world, path_planning)
-
-robot = toolbox.robot
-
-# FK for each configuration -> end-effector positions
-ee_xyz = []
-for q in smoothed_path:  # q in radians
-    T = robot.fkine(q)   # SE3
-    ee_xyz.append(np.array(T.t).reshape(3))
-ee_xyz = np.vstack(ee_xyz)
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection="3d")
-
-# Plot path + start/goal
-ax.plot(ee_xyz[:, 0], ee_xyz[:, 1], ee_xyz[:, 2], linewidth=2)
-ax.scatter(ee_xyz[0, 0], ee_xyz[0, 1], ee_xyz[0, 2], s=60)
-ax.scatter(ee_xyz[-1, 0], ee_xyz[-1, 1], ee_xyz[-1, 2], s=60)
-
-# Plot obstacle spheres
-for obs in world.obstacles:
-    c = np.asarray(obs.center, dtype=float)
-    r = float(obs.radius)
-    u = np.linspace(0, 2*np.pi, 30)
-    v = np.linspace(0, np.pi, 15)
-    xs = c[0] + r * np.outer(np.cos(u), np.sin(v))
-    ys = c[1] + r * np.outer(np.sin(u), np.sin(v))
-    zs = c[2] + r * np.outer(np.ones_like(u), np.cos(v))
-    ax.plot_wireframe(xs, ys, zs, linewidth=0.5)
-
-# Plot ground plane (z = ground_z)
-gz = float(world.ground_z)
-pad = 100.0
-xmin, xmax = ee_xyz[:, 0].min() - pad, ee_xyz[:, 0].max() + pad
-ymin, ymax = ee_xyz[:, 1].min() - pad, ee_xyz[:, 1].max() + pad
-X, Y = np.meshgrid(np.linspace(xmin, xmax, 2), np.linspace(ymin, ymax, 2))
-Z = np.full_like(X, gz)
-ax.plot_surface(X, Y, Z, alpha=0.2)
-
-ax.set_xlabel("x (mm)")
-ax.set_ylabel("y (mm)")
-ax.set_zlabel("z (mm)")
-ax.set_title("RRT Path (End-Effector)")
-set_axes_equal(ax)
-
-plt.show()
